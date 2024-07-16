@@ -2,8 +2,7 @@ import logging
 from fastapi import FastAPI, BackgroundTasks, HTTPException
 from pydantic import BaseModel
 from merge_csv import merge_csv_files
-from google_drive import upload_csv_from_dataframe
-from google_drive import upload_csv_from_dataframe, list_files 
+from google_drive import upload_csv_from_dataframe, list_files
 
 app = FastAPI()
 

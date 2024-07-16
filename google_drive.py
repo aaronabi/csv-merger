@@ -11,7 +11,7 @@ logging.basicConfig(level=logging.INFO)
 
 def get_drive_service():
     credentials = service_account.Credentials.from_service_account_file('credentials.json', scopes=SCOPES)
-    return build('drive', 'v3', credentials=credentials, cache_discovery=False)  # Disable cache discovery
+    return build('drive', 'v3', credentials=credentials, cache_discovery=False)
 
 def download_csv(file_id):
     service = get_drive_service()
