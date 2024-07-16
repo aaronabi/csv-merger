@@ -2,7 +2,7 @@ import os
 import motor.motor_asyncio
 from bson.objectid import ObjectId
 
-MONGOURL = os.getenv('MONGOURL')
+MONGOURL = os.getenv('mongodb://mongo:sJsKjaeYZubRzTvjCKINnkUDByIALeVh@roundhouse.proxy.rlwy.net:30179')
 client = motor.motor_asyncio.AsyncIOMotorClient(MONGOURL)
 db = client.csvmerger
 
