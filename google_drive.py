@@ -51,16 +51,34 @@ def upload_csv_from_dataframe(file_name, dataframe):
     
     logging.info(f"File created with ID: {file.get('id')}")
     
-    # Set permission to allow everyone to view
-    permission = {
-        'type': 'anyone',
-        'role': 'reader'
-    }
-    service.permissions().create(
-        fileId=file.get('id'),
-        body=permission,
-        fields='id',
-    ).execute()
+    try:
+        # Set permission to allow everyone to view
+        permission = {
+            'type': 'anyone',
+            'role': 'reader'
+        }
+        service.permissions().create(
+            fileId=file.get('id'),
+            body=permission,
+            fields='id',
+        ).execute()
+        logging.info("Permission set to allow everyone to view")
+
+        # Share the file with your personal/work Google account
+        email_permission = {
+            'type': 'user',
+            'role': 'writer',
+            'emailAddress': 'automoteautomations@gmail.com'  # Replace with your actual email address
+        }
+        service.permissions().create(
+            fileId=file.get('id'),
+            body=email_permission,
+            fields='id',
+        ).execute()
+        logging.info(f"File shared with email: automoteautomations@gmail.com")
+    
+    except HttpError as error:
+        logging.error(f"Error setting permissions: {error}")
     
     return file.get('id')
 
