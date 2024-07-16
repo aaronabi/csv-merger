@@ -1,8 +1,9 @@
-# mongodb.py
+import os
 import motor.motor_asyncio
 from bson.objectid import ObjectId
 
-client = motor.motor_asyncio.AsyncIOMotorClient('mongodb://localhost:27017')
+MONGODB_URI = os.getenv('MONGODB_URI', 'mongodb://localhost:27017')
+client = motor.motor_asyncio.AsyncIOMotorClient(MONGODB_URI)
 db = client.csvmerger
 
 async def create_request(file_ids):
