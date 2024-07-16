@@ -5,7 +5,7 @@ services:
     image: mongo:latest
     container_name: mongodb
     ports:
-      - "27017:27017"
+      - "22558:22558"
     volumes:
       - mongo-data:/data/db
 
@@ -15,7 +15,8 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - MONGODB_URI=mongodb://mongodb:27017
+    # Below mongodb URI comes from railway mongodb database,  
+      - MONGODB_URI=mongodb://mongo:itROjvcqxULJHfnbxvxTvXgUCJNktgom@monorail.proxy.rlwy.net:22558
     depends_on:
       - mongodb
 

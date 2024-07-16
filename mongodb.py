@@ -2,7 +2,7 @@ import os
 import motor.motor_asyncio
 from bson.objectid import ObjectId
 
-MONGODB_URI = os.getenv('MONGODB_URI', 'mongodb://localhost:27017')
+MONGODB_URI = os.getenv('MONGODB_URI', 'monorail.proxy.rlwy.net:22558')
 client = motor.motor_asyncio.AsyncIOMotorClient(MONGODB_URI)
 db = client.csvmerger
 
