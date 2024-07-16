@@ -1,4 +1,3 @@
-# merge_csv.py
 import pandas as pd
 from google_drive import download_csv
 

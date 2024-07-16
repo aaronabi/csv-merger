@@ -1,4 +1,3 @@
-# google_drive.py
 import io
 import logging
 import pandas as pd
@@ -62,20 +61,6 @@ def upload_csv_from_dataframe(file_name, dataframe):
         body=permission,
         fields='id',
     ).execute()
-    
-    # Share the file with your personal/work Google account
-    email_permission = {
-        'type': 'user',
-        'role': 'writer',
-        'emailAddress': 'automoteautomations@gmail.com'  # Replace with your actual email address
-    }
-    service.permissions().create(
-        fileId=file.get('id'),
-        body=email_permission,
-        fields='id',
-    ).execute()
-    
-    logging.info(f"File shared with email: automoteautomations@gmail.com")
     
     return file.get('id')
 
