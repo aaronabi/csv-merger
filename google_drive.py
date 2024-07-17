@@ -1,9 +1,11 @@
 import io
 import logging
 import pandas as pd
+import tempfile
+import os
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
-from googleapiclient.http import MediaIoBaseDownload, MediaIoBaseUpload
+from googleapiclient.http import MediaIoBaseDownload, MediaFileUpload
 from googleapiclient.errors import HttpError
 
 SCOPES = ['https://www.googleapis.com/auth/drive']
@@ -12,6 +14,40 @@ logging.basicConfig(level=logging.INFO)
 def get_drive_service():
     credentials = service_account.Credentials.from_service_account_file('credentials.json', scopes=SCOPES)
     return build('drive', 'v3', credentials=credentials, cache_discovery=False)
+
+def download_csv_in_chunks(file_id, chunk_size):
+    service = get_drive_service()
+    
+    try:
+        request = service.files().get_media(fileId=file_id)
+        fh = io.BytesIO()
+        downloader = MediaIoBaseDownload(fh, request, chunksize=1024*1024)  # 1MB chunks
+        done = False
+        while not done:
+            status, done = downloader.next_chunk()
+            if status:
+                logging.info(f"Download {int(status.progress() * 100)}%.")
+        
+        fh.seek(0)
+        for chunk in pd.read_csv(fh, chunksize=chunk_size):
+            yield chunk
+    
+    except HttpError as error:
+        if error.resp.status == 403 and "fileNotDownloadable" in str(error):
+            export_request = service.files().export_media(fileId=file_id, mimeType='text/csv')
+            fh = io.BytesIO()
+            downloader = MediaIoBaseDownload(fh, export_request, chunksize=1024*1024)  # 1MB chunks
+            done = False
+            while not done:
+                status, done = downloader.next_chunk()
+                if status:
+                    logging.info(f"Download {int(status.progress() * 100)}%.")
+            
+            fh.seek(0)
+            for chunk in pd.read_csv(fh, chunksize=chunk_size):
+                yield chunk
+        else:
+            raise error
 
 def download_csv(file_id):
     service = get_drive_service()
@@ -43,11 +79,13 @@ def upload_csv_from_dataframe(file_name, dataframe):
     service = get_drive_service()
     file_metadata = {'name': file_name}
     
-    with io.StringIO() as csv_buffer:
-        dataframe.to_csv(csv_buffer, index=False)
-        csv_buffer.seek(0)
-        media = MediaIoBaseUpload(io.BytesIO(csv_buffer.getvalue().encode('utf-8')), mimetype='text/csv')
+    with tempfile.NamedTemporaryFile(mode='w+', delete=False, suffix='.csv') as temp_file:
+        dataframe.to_csv(temp_file.name, index=False)
+        
+        media = MediaFileUpload(temp_file.name, mimetype='text/csv', resumable=True)
         file = service.files().create(body=file_metadata, media_body=media, fields='id').execute()
+    
+    os.unlink(temp_file.name)  # Delete the temporary file
     
     logging.info(f"File created with ID: {file.get('id')}")
     

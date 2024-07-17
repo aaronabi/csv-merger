@@ -1,46 +1,40 @@
-import logging
-from fastapi import FastAPI, BackgroundTasks, HTTPException
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
+from typing import List
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
 from merge_csv import merge_csv_files
-from google_drive import upload_csv_from_dataframe, list_files
+from google_drive import upload_csv_from_dataframe
+import logging
 
 app = FastAPI()
 
-logging.basicConfig(level=logging.INFO)
-
 class MergeRequest(BaseModel):
-    file_ids: list
+    file_ids: List[str]
     file_name: str
 
-class MergeResponse(BaseModel):
-    file_id: str
-
-@app.post("/merge", response_model=MergeResponse)
-async def merge_files(request: MergeRequest, background_tasks: BackgroundTasks):
+@app.post("/merge")
+async def merge_csv(request: MergeRequest):
+    if len(request.file_ids) > 10:
+        raise HTTPException(status_code=400, detail="Maximum 10 files can be merged at once")
+    
     try:
-        file_id = await process_merge(request.file_ids, request.file_name)
-        return MergeResponse(file_id=file_id)
+        result_file_id = await process_merge(request.file_ids, request.file_name)
+        return {"result_file_id": result_file_id}
     except Exception as e:
-        logging.error(f"Error in merge_files: {e}")
-        raise HTTPException(status_code=500, detail="Internal Server Error")
+        logging.error(f"Error during merge: {e}")
+        raise HTTPException(status_code=500, detail="An error occurred during the merge process")
 
 async def process_merge(file_ids, file_name):
     try:
-        merged_df = merge_csv_files(file_ids)
-        result_file_id = upload_csv_from_dataframe(file_name, merged_df)
+        executor = ThreadPoolExecutor(max_workers=5)  # Adjust based on your server's capabilities
+        loop = asyncio.get_event_loop()
+        merged_df = await loop.run_in_executor(executor, merge_csv_files, file_ids)
+        result_file_id = await loop.run_in_executor(executor, upload_csv_from_dataframe, file_name, merged_df)
         return result_file_id
     except Exception as e:
         logging.error(f"Error in process_merge: {e}")
         raise e
-
-@app.get("/list-files")
-async def list_drive_files():
-    try:
-        files = list_files()
-        return {"files": files}
-    except Exception as e:
-        logging.error(f"Error in list_drive_files: {e}")
-        raise HTTPException(status_code=500, detail="Internal Server Error")
 
 if __name__ == "__main__":
     import uvicorn
